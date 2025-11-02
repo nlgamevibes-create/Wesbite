@@ -117,16 +117,15 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const responseText = await response.text();
             
-            // If Python server (501) or non-JSON response on localhost, use test mode
-            if ((response.status === 501 || response.status === 405) && isLocalhost) {
-                showTestModeStripe(pkg);
-                return;
-            }
-            
-            // If not JSON on localhost, probably Python server
-            if (isLocalhost && !responseText.trim().startsWith('{') && !responseText.trim().startsWith('[')) {
-                showTestModeStripe(pkg);
-                return;
+            // On localhost, if we get ANY non-200/JSON response, show test mode immediately
+            if (isLocalhost) {
+                // Python server can't execute PHP, so always show test mode
+                if (response.status === 501 || response.status === 405 || 
+                    response.status === 404 || 
+                    !responseText.trim().startsWith('{') && !responseText.trim().startsWith('[')) {
+                    showTestModeStripe(pkg);
+                    return;
+                }
             }
             
             // If we got here, backend is available - try to parse
