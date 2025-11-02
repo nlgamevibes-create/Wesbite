@@ -135,13 +135,51 @@ document.addEventListener('DOMContentLoaded', () => {
                     showTestModeStripe(pkg);
                     return;
                 }
-                throw new Error('Server geeft geen geldig JSON antwoord');
+                
+                // Show helpful error message about PHP server needed
+                let serverError = 'Server geeft geen geldig JSON antwoord';
+                
+                // Check if response looks like HTML (PHP error page or Python server response)
+                if (responseText.includes('<!DOCTYPE') || responseText.includes('<html') || responseText.includes('501') || responseText.includes('Unsupported method')) {
+                    serverError = '❌ PHP server is niet actief!<br><br><strong>Het probleem:</strong><br>• Python server kan PHP niet uitvoeren<br>• payment-proxy.php wordt niet uitgevoerd<br><br><strong>Oplossing:</strong><br>• Upload naar een webserver met PHP<br>• Of start lokaal een PHP server: <code style="background: rgba(0,0,0,0.1); padding: 2px 6px; border-radius: 4px;">php -S localhost:8000</code><br><br>Zorg dat je Python server gestopt is voordat je PHP start.';
+                } else if (responseText.length > 0) {
+                    // Show first 200 chars of response for debugging
+                    const preview = responseText.substring(0, 200).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    serverError = '❌ Server geeft geen geldig JSON antwoord<br><br><strong>Server antwoord:</strong><br><code style="background: rgba(0,0,0,0.1); padding: 4px; border-radius: 4px; font-size: 11px;">' + preview + (responseText.length > 200 ? '...' : '') + '</code><br><br>Controleer je PHP server en payment-proxy.php configuratie.';
+                }
+                
+                throw new Error(serverError);
             }
             
-            const result = JSON.parse(responseText);
+            let result;
+            try {
+                result = JSON.parse(responseText);
+            } catch (parseError) {
+                // JSON parse failed - show helpful error
+                console.error('JSON parse error:', parseError);
+                console.error('Response text:', responseText);
+                
+                if (isLocalhost) {
+                    showTestModeStripe(pkg);
+                    return;
+                }
+                
+                let parseErrorMsg = '❌ Server geeft geen geldig JSON antwoord<br><br>';
+                
+                if (responseText.includes('501') || responseText.includes('Unsupported method')) {
+                    parseErrorMsg += '<strong>PHP server draait niet!</strong><br><br>Python kan PHP niet uitvoeren.<br>Start een PHP server om Stripe te kunnen gebruiken.';
+                } else if (responseText.includes('<html') || responseText.includes('<!DOCTYPE')) {
+                    parseErrorMsg += '<strong>Server geeft HTML in plaats van JSON</strong><br><br>Dit betekent dat PHP niet werkt of een error pagina toont.<br>Controleer je server configuratie.';
+                } else {
+                    parseErrorMsg += 'De server heeft een ongeldig antwoord gegeven.<br>Controleer payment-proxy.php en je PHP configuratie.';
+                }
+                
+                throw new Error(parseErrorMsg);
+            }
             
             if (!response.ok) {
-                throw new Error(result.error || 'Payment session creation failed');
+                const errorMsg = result?.error || 'Payment session creation failed';
+                throw new Error('❌ Betaling sessie kon niet worden aangemaakt<br><br>' + errorMsg);
             }
             
             // ONLY redirect if we have a VALID sessionId from backend
