@@ -71,21 +71,24 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             await processStripePayment(selectedPackage);
         } catch (error) {
-            console.error('Payment error:', error);
-            
-            // ALWAYS check localhost first - never show errors on localhost
+            // CRITICAL: Check localhost FIRST - before ANY error processing
             const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
             
             if (isLocalhost) {
-                // On localhost, ALWAYS show test mode - never show errors
+                // On localhost: NEVER show errors, ALWAYS show test mode
+                console.log('Localhost detected - showing test mode instead of error:', error.message);
                 showTestModeStripe(selectedPackage);
                 payButton.disabled = false;
-                buttonText.style.display = 'block';
-                buttonLoader.style.display = 'none';
-                return; // Exit early - no error messages on localhost
+                const buttonText = payButton.querySelector('.button-text');
+                const buttonLoader = payButton.querySelector('.button-loader');
+                if (buttonText) buttonText.style.display = 'block';
+                if (buttonLoader) buttonLoader.style.display = 'none';
+                payButton.disabled = false;
+                return; // Exit immediately - NO error messages on localhost
             }
             
-            // Production only: Show detailed error message
+            // Production only (NOT localhost): Show detailed error message
+            console.error('Payment error (production):', error);
             let errorMessage = error.message || 'Er is een fout opgetreden. Probeer het opnieuw of neem contact op met support.';
             
             // Make it user-friendly for production
@@ -97,8 +100,10 @@ document.addEventListener('DOMContentLoaded', () => {
             
             showMessage('error', errorMessage);
             payButton.disabled = false;
-            buttonText.style.display = 'block';
-            buttonLoader.style.display = 'none';
+            const buttonText = payButton.querySelector('.button-text');
+            const buttonLoader = payButton.querySelector('.button-loader');
+            if (buttonText) buttonText.style.display = 'block';
+            if (buttonLoader) buttonLoader.style.display = 'none';
         }
     });
     
@@ -126,17 +131,18 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const responseText = await response.text();
             
-            // FIRST AND ONLY CHECK: On localhost, if response is not perfect, show test mode IMMEDIATELY
-            // This prevents ANY error messages from showing on localhost
+            // CRITICAL CHECK: On localhost, check response IMMEDIATELY and show test mode for ANY issue
+            // This must happen BEFORE any error throwing or processing
             if (isLocalhost) {
-                const isJSON = responseText.trim().startsWith('{') || responseText.trim().startsWith('[');
-                const isErrorStatus = response.status !== 200 || response.status === 501 || response.status === 405 || response.status === 404 || response.status === 500;
+                const isJSON = responseText && (responseText.trim().startsWith('{') || responseText.trim().startsWith('['));
+                const isErrorStatus = response.status !== 200;
+                const isEmpty = !responseText || responseText.trim().length === 0;
                 
-                // On localhost: ANY problem at all = show test mode, return immediately, never throw errors
-                if (!isJSON || isErrorStatus || !responseText || responseText.trim().length === 0) {
-                    // Python server detected or any problem - show test mode, exit immediately
+                // On localhost: ANYTHING wrong = show test mode immediately, NO exceptions
+                if (!isJSON || isErrorStatus || isEmpty) {
+                    console.log('Localhost: Non-JSON or error response detected, showing test mode');
                     showTestModeStripe(pkg);
-                    return; // Exit immediately - no further processing, no error throwing
+                    return; // EXIT IMMEDIATELY - no error throwing, no further processing
                 }
             }
             
@@ -263,14 +269,19 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
         } catch (fetchError) {
+            // CRITICAL: Check localhost FIRST before any error handling
             // Network error, timeout, or other fetch error
-            console.error('Payment fetch error:', fetchError);
+            console.log('Fetch error caught:', fetchError.name, fetchError.message);
             
-            // ALWAYS show test mode on localhost - no errors ever
+            // ALWAYS show test mode on localhost - NO errors ever shown
             if (isLocalhost) {
+                console.log('Localhost detected in catch - showing test mode instead of error');
                 showTestModeStripe(pkg);
-                return;
+                return; // Exit immediately - no error throwing on localhost
             }
+            
+            // Production only: show error
+            console.error('Payment fetch error (production):', fetchError);
             
             // On production, show detailed error message
             let errorMsg = 'Er is een fout opgetreden bij het starten van de betaling.';
