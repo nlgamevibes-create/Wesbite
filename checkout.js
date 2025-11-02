@@ -44,7 +44,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Pay button handler
     payButton.addEventListener('click', async () => {
         // Check if Stripe Publishable Key is configured
-        if (!STRIPE_PUBLISHABLE_KEY || STRIPE_PUBLISHABLE_KEY.includes('YOUR_PUBLISHABLE_KEY') || STRIPE_PUBLISHABLE_KEY.includes('YOUR_')) {
+        // Only show error if key is missing or contains placeholder text
+        const keyIsPlaceholder = !STRIPE_PUBLISHABLE_KEY || 
+                                  STRIPE_PUBLISHABLE_KEY.includes('YOUR_PUBLISHABLE_KEY') || 
+                                  STRIPE_PUBLISHABLE_KEY.includes('YOUR_') ||
+                                  STRIPE_PUBLISHABLE_KEY.length < 50;
+        
+        if (keyIsPlaceholder) {
             showMessage('error', '⚠️ Stripe Publishable Key is niet geconfigureerd!<br><br>Voeg je Publishable Key toe in checkout.js (regel 8).<br><br>Je kunt deze vinden in:<br>Stripe Dashboard → Developers → API keys<br><br>De key begint met: pk_live_');
             return;
         }
