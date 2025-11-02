@@ -103,15 +103,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     async function processStripePayment(pkg) {
+        // Detect if we're in local development without PHP - check FIRST before anything else
+        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        
         const paymentData = {
             method: 'stripe',
             package: pkg.name,
             amount: pkg.priceNum,
             currency: 'EUR'
         };
-        
-        // Detect if we're in local development without PHP
-        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
         
         try {
             const response = await fetch(API_ENDPOINT, {
@@ -126,17 +126,17 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const responseText = await response.text();
             
-            // On localhost: ALWAYS show test mode if response is not valid JSON or error status
-            // This prevents error messages on localhost when Python server can't execute PHP
+            // FIRST AND ONLY CHECK: On localhost, if response is not perfect, show test mode IMMEDIATELY
+            // This prevents ANY error messages from showing on localhost
             if (isLocalhost) {
                 const isJSON = responseText.trim().startsWith('{') || responseText.trim().startsWith('[');
-                const isErrorStatus = response.status === 501 || response.status === 405 || response.status === 404 || response.status !== 200;
+                const isErrorStatus = response.status !== 200 || response.status === 501 || response.status === 405 || response.status === 404 || response.status === 500;
                 
-                // On localhost, if ANYTHING is wrong, just show test mode - never throw errors
-                if (!isJSON || isErrorStatus || responseText.length === 0) {
-                    // Python server detected - show test mode, no errors
+                // On localhost: ANY problem at all = show test mode, return immediately, never throw errors
+                if (!isJSON || isErrorStatus || !responseText || responseText.trim().length === 0) {
+                    // Python server detected or any problem - show test mode, exit immediately
                     showTestModeStripe(pkg);
-                    return;
+                    return; // Exit immediately - no further processing, no error throwing
                 }
             }
             
