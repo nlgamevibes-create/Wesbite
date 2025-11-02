@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Vervang met je Stripe Publishable Key van je .env bestand of server configuratie
     // Stripe Publishable Key - deze hoort bij je Secret Key
     // Als je deze niet hebt, haal hem op uit Stripe Dashboard -> Developers -> API keys
-    const STRIPE_PUBLISHABLE_KEY = 'pk_live_YOUR_PUBLISHABLE_KEY_HERE'; // TODO: Voeg je Publishable Key toe
+    const STRIPE_PUBLISHABLE_KEY = 'pk_live_51SOpweJyuvSjv9sEihIs2wjDUthZIZXTJinhvw7HQanrIUgNIsQn0few2ur7H0OJdeuXgibSvT86CyhySH6TlvlN00CSCV4Wfd';
     const stripe = Stripe ? Stripe(STRIPE_PUBLISHABLE_KEY) : null;
     
     // Backend API endpoint
