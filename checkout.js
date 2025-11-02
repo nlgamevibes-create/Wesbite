@@ -3,7 +3,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Stripe public key - Vervang met jouw Stripe publishable key
     // Note: De key die je hebt is een live key (pk_live_), zorg dat je de juiste gebruikt
     // Vervang met je Stripe Publishable Key van je .env bestand of server configuratie
-    const STRIPE_PUBLISHABLE_KEY = 'pk_live_YOUR_PUBLISHABLE_KEY_HERE'; // TODO: Configureer op server
+    // Stripe Publishable Key - deze hoort bij je Secret Key
+    // Als je deze niet hebt, haal hem op uit Stripe Dashboard -> Developers -> API keys
+    const STRIPE_PUBLISHABLE_KEY = 'pk_live_YOUR_PUBLISHABLE_KEY_HERE'; // TODO: Voeg je Publishable Key toe
     const stripe = Stripe ? Stripe(STRIPE_PUBLISHABLE_KEY) : null;
     
     // Backend API endpoint
@@ -41,8 +43,15 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Pay button handler
     payButton.addEventListener('click', async () => {
+        // Check if Stripe Publishable Key is configured
+        if (!STRIPE_PUBLISHABLE_KEY || STRIPE_PUBLISHABLE_KEY.includes('YOUR_PUBLISHABLE_KEY') || STRIPE_PUBLISHABLE_KEY.includes('YOUR_')) {
+            showMessage('error', '⚠️ Stripe Publishable Key is niet geconfigureerd!<br><br>Voeg je Publishable Key toe in checkout.js (regel 8).<br><br>Je kunt deze vinden in:<br>Stripe Dashboard → Developers → API keys<br><br>De key begint met: pk_live_');
+            return;
+        }
+        
+        // Check if Stripe library is loaded
         if (!stripe) {
-            showMessage('error', 'Stripe is niet geladen. Controleer je Stripe public key.');
+            showMessage('error', 'Stripe library niet geladen. Controleer je internetverbinding.');
             return;
         }
         
