@@ -73,7 +73,20 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error('Payment error:', error);
             
-            // Show detailed error message
+            // On localhost, if we catch an error, it means we should have shown test mode
+            // Don't show error message on localhost - test mode should have been shown already
+            const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            
+            if (isLocalhost) {
+                // On localhost, show test mode instead of error
+                showTestModeStripe(selectedPackage);
+                payButton.disabled = false;
+                buttonText.style.display = 'block';
+                buttonLoader.style.display = 'none';
+                return;
+            }
+            
+            // Production: Show detailed error message
             let errorMessage = error.message || 'Er is een fout opgetreden. Probeer het opnieuw of neem contact op met support.';
             
             // Make it user-friendly
@@ -101,9 +114,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // Detect if we're in local development without PHP
         const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
         
-        // Check backend immediately - if Python server (501), go straight to test mode
-        let backendAvailable = false;
-        
         try {
             const response = await fetch(API_ENDPOINT, {
                 method: 'POST',
@@ -117,25 +127,29 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const responseText = await response.text();
             
-            // On localhost, if we get ANY non-200/JSON response, show test mode immediately
+            // On localhost: ALWAYS show test mode if response is not valid JSON
+            // This prevents error messages on localhost when Python server can't execute PHP
             if (isLocalhost) {
-                // Python server can't execute PHP, so always show test mode
-                if (response.status === 501 || response.status === 405 || 
-                    response.status === 404 || 
-                    !responseText.trim().startsWith('{') && !responseText.trim().startsWith('[')) {
+                const isJSON = responseText.trim().startsWith('{') || responseText.trim().startsWith('[');
+                const isErrorStatus = response.status === 501 || response.status === 405 || response.status === 404 || response.status !== 200;
+                
+                if (!isJSON || isErrorStatus) {
+                    // Python server detected - show test mode, no errors
                     showTestModeStripe(pkg);
                     return;
                 }
             }
             
-            // If we got here, backend is available - try to parse
+            // If we got here and NOT localhost, check if response is valid JSON
+            // On localhost, this should already be handled above
             if (!responseText.trim().startsWith('{') && !responseText.trim().startsWith('[')) {
+                // This should never happen on localhost (already handled above)
                 if (isLocalhost) {
                     showTestModeStripe(pkg);
                     return;
                 }
                 
-                // Show helpful error message about PHP server needed
+                // Production: Show helpful error message about PHP server needed
                 let serverError = 'Server geeft geen geldig JSON antwoord';
                 
                 // Check if response looks like HTML (PHP error page or Python server response)
