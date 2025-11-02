@@ -72,7 +72,18 @@ document.addEventListener('DOMContentLoaded', () => {
             await processStripePayment(selectedPackage);
         } catch (error) {
             console.error('Payment error:', error);
-            showMessage('error', 'Er is een fout opgetreden. Probeer het opnieuw of neem contact op met support.');
+            
+            // Show detailed error message
+            let errorMessage = error.message || 'Er is een fout opgetreden. Probeer het opnieuw of neem contact op met support.';
+            
+            // Make it user-friendly
+            if (errorMessage.includes('Stripe')) {
+                errorMessage = '⚠️ Stripe Checkout fout:<br><br>' + errorMessage + '<br><br>Controleer je Stripe API keys en server configuratie.';
+            } else if (errorMessage.includes('PHP') || errorMessage.includes('server')) {
+                errorMessage = '⚠️ Server fout:<br><br>' + errorMessage + '<br><br>Zorg dat PHP werkt en payment-proxy.php bereikbaar is.';
+            }
+            
+            showMessage('error', errorMessage);
             payButton.disabled = false;
             buttonText.style.display = 'block';
             buttonLoader.style.display = 'none';
@@ -174,15 +185,26 @@ document.addEventListener('DOMContentLoaded', () => {
             
         } catch (fetchError) {
             // Network error, timeout, or other fetch error
+            console.error('Payment fetch error:', fetchError);
+            
             if (isLocalhost) {
                 // On localhost, always show test mode instead of error
                 showTestModeStripe(pkg);
                 return;
             }
             
-            // On production, show error
-            console.error('Payment fetch error:', fetchError);
-            throw new Error(fetchError.message || 'Kan geen verbinding maken met de betalingsserver');
+            // On production, show detailed error message
+            let errorMsg = 'Er is een fout opgetreden bij het starten van de betaling.';
+            
+            if (fetchError.name === 'AbortError' || fetchError.message?.includes('timeout')) {
+                errorMsg = '⏱️ De betalingsserver reageert niet (timeout).<br><br>Controleer je internetverbinding en probeer het opnieuw.<br><br>Als dit blijft gebeuren, neem contact op met support.';
+            } else if (fetchError.message?.includes('NetworkError') || fetchError.message?.includes('Failed to fetch')) {
+                errorMsg = '🌐 Kan geen verbinding maken met de betalingsserver.<br><br><strong>Mogelijke oorzaken:</strong><br>• PHP server draait niet<br>• payment-proxy.php is niet bereikbaar<br>• Netwerkprobleem<br><br>Controleer je server configuratie.';
+            } else {
+                errorMsg = '❌ ' + (fetchError.message || 'Onbekende fout') + '<br><br>Probeer het opnieuw of neem contact op met support.';
+            }
+            
+            throw new Error(errorMsg);
         }
     }
     
