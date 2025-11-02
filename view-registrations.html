@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lokale Registraties - GameFlux</title>
+    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-content">
+                <div class="logo">
+                    <img src="logo.png" alt="GameFlux Logo" class="logo-img">
+                    <div class="logo-text-container">
+                        <span class="logo-text">GameFlux</span>
+                        <span class="logo-subtitle">FiveM Hosting</span>
+                    </div>
+                </div>
+                <div class="nav-buttons">
+                    <a href="index.html" class="login-btn">Home</a>
+                    <a href="register.html" class="signup-btn">Nieuwe Registratie</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <section class="register" style="padding: 4rem 0;">
+        <div class="container">
+            <h2 class="section-title">Lokaal Opgeslagen Registraties</h2>
+            <p class="section-subtitle">Deze registraties zijn opgeslagen in je browser en moeten handmatig worden geïmporteerd in het panel</p>
+            
+            <div id="registrationsList" class="registrations-list">
+                <!-- Registraties worden hier geladen -->
+            </div>
+
+            <div class="action-buttons" style="margin-top: 2rem; text-align: center;">
+                <button onclick="exportRegistrations()" class="submit-button" style="margin-right: 1rem;">
+                    📥 Exporteer als JSON
+                </button>
+                <button onclick="exportAsCSV()" class="submit-button secondary">
+                    📊 Exporteer als CSV
+                </button>
+                <button onclick="clearRegistrations()" class="submit-button" style="background: rgba(239, 68, 68, 0.2); border-color: #f87171; margin-left: 1rem;">
+                    🗑️ Wissen (alleen na import!)
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <img src="logo.png" alt="GameFlux Logo" class="logo-img footer-logo-img">
+                    <div class="logo-text-container">
+                        <span class="logo-text">GameFlux</span>
+                        <span class="logo-subtitle">FiveM Hosting</span>
+                    </div>
+                </div>
+                <div class="footer-links">
+                    <a href="https://discord.gg/zddgyTcpFe" target="_blank" class="footer-link">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515a.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0a12.64 12.64 0 0 0-.617-1.25a.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057a19.9 19.9 0 0 0 5.993 3.03a.078.078 0 0 0 .084-.028a14.09 14.09 0 0 0 1.226-1.994a.076.076 0 0 0-.041-.106a13.107 13.107 0 0 1-1.872-.892a.077.077 0 0 1-.008-.128a10.2 10.2 0 0 0 .372-.292a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127a12.299 12.299 0 0 1-1.873.892a.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028a19.839 19.839 0 0 0 6.002-3.03a.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.956-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.955-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.946 2.418-2.157 2.418z"/>
+                        </svg>
+                        Discord Server
+                    </a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 GameFlux. Alle rechten voorbehouden.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        function loadRegistrations() {
+            const registrations = JSON.parse(localStorage.getItem('pendingRegistrations') || '[]');
+            const listDiv = document.getElementById('registrationsList');
+
+            if (registrations.length === 0) {
+                listDiv.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 2rem;">Geen lokale registraties gevonden.</p>';
+                return;
+            }
+
+            listDiv.innerHTML = registrations.map((reg, index) => `
+                <div class="registration-item" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 1rem;">
+                        <div style="flex: 1;">
+                            <h3 style="color: var(--primary-color); margin-bottom: 0.5rem;">Registratie #${index + 1}</h3>
+                            <p><strong>Email:</strong> ${reg.email}</p>
+                            <p><strong>Username:</strong> ${reg.username}</p>
+                            ${reg.first_name ? `<p><strong>Naam:</strong> ${reg.first_name} ${reg.last_name || ''}</p>` : ''}
+                            <p><strong>Datum:</strong> ${new Date(reg.timestamp).toLocaleString('nl-NL')}</p>
+                        </div>
+                        <div>
+                            <button onclick="copyRegistration(${index})" class="submit-button" style="padding: 0.5rem 1rem; font-size: 0.9rem;">
+                                📋 Kopieer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function copyRegistration(index) {
+            const registrations = JSON.parse(localStorage.getItem('pendingRegistrations') || '[]');
+            const reg = registrations[index];
+            const text = `Email: ${reg.email}\nUsername: ${reg.username}\nNaam: ${reg.first_name || ''} ${reg.last_name || ''}`;
+            navigator.clipboard.writeText(text);
+            alert('Registratie gekopieerd naar clipboard!');
+        }
+
+        function exportRegistrations() {
+            const registrations = JSON.parse(localStorage.getItem('pendingRegistrations') || '[]');
+            const json = JSON.stringify(registrations, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `gameflux-registrations-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function exportAsCSV() {
+            const registrations = JSON.parse(localStorage.getItem('pendingRegistrations') || '[]');
+            const csv = [
+                ['Email', 'Username', 'Voornaam', 'Achternaam', 'Datum'].join(','),
+                ...registrations.map(reg => [
+                    reg.email,
+                    reg.username,
+                    reg.first_name || '',
+                    reg.last_name || '',
+                    reg.timestamp
+                ].join(','))
+            ].join('\n');
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `gameflux-registrations-${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function clearRegistrations() {
+            if (confirm('Weet je zeker dat je alle lokale registraties wilt wissen? Dit kan niet ongedaan worden gemaakt!')) {
+                localStorage.removeItem('pendingRegistrations');
+                loadRegistrations();
+                alert('Alle lokale registraties zijn gewist.');
+            }
+        }
+
+        // Load on page load
+        document.addEventListener('DOMContentLoaded', loadRegistrations);
+    </script>
+</body>
+</html>
+
+

@@ -1,0 +1,37 @@
+# Log files
+*.txt
+!README.txt
+payment-logs.txt
+order-counter.txt
+tickets.txt
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary files
+*.tmp
+*.log
+
+# PHP cache
+*.cache
+
+# Environment files with sensitive data
+.env
+.env.local
+.env.production
+
+# Keep config but don't track sensitive data in public repos
+# config.php should be configured on the server
+
+# Sensitive files - configure these on the server, not in Git
+# Note: We keep payment-proxy.php and other PHP files but they contain keys
+# For production, use environment variables or secure config files
+
