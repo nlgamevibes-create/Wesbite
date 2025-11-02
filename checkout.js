@@ -158,16 +158,50 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
                 
-                // Production: Show helpful error message about PHP server needed
-                let serverError = 'Server geeft geen geldig JSON antwoord';
+                // Production: Show detailed error with server response for debugging
+                let serverError = '❌ Server geeft geen geldig JSON antwoord';
                 
-                // Check if response looks like HTML (PHP error page or Python server response)
-                if (responseText.includes('<!DOCTYPE') || responseText.includes('<html') || responseText.includes('501') || responseText.includes('Unsupported method')) {
-                    serverError = '❌ PHP server is niet actief!<br><br><strong>Het probleem:</strong><br>• Python server kan PHP niet uitvoeren<br>• payment-proxy.php wordt niet uitgevoerd<br><br><strong>Oplossing:</strong><br>• Upload naar een webserver met PHP<br>• Of start lokaal een PHP server: <code style="background: rgba(0,0,0,0.1); padding: 2px 6px; border-radius: 4px;">php -S localhost:8000</code><br><br>Zorg dat je Python server gestopt is voordat je PHP start.';
+                // Check response status and content
+                const status = response.status;
+                const statusText = response.statusText || '';
+                
+                // Check if response looks like HTML (PHP error page, 404, 500, etc.)
+                if (responseText.includes('<!DOCTYPE') || responseText.includes('<html') || 
+                    responseText.includes('404') || responseText.includes('500') || 
+                    responseText.includes('Not Found') || responseText.includes('Internal Server Error') ||
+                    responseText.includes('PHP Parse error') || responseText.includes('PHP Fatal error') ||
+                    responseText.includes('Fatal error') || responseText.includes('Parse error')) {
+                    
+                    // Extract error details if available
+                    let errorDetails = '';
+                    if (responseText.includes('Fatal error') || responseText.includes('Parse error')) {
+                        const match = responseText.match(/(Fatal error|Parse error|Warning|Notice)[^<]*/i);
+                        if (match) errorDetails = '<br><br><strong>PHP Fout:</strong><br><code style="background: rgba(255,0,0,0.1); padding: 4px; border-radius: 4px; font-size: 11px;">' + 
+                            match[0].substring(0, 300).replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</code>';
+                    }
+                    
+                    serverError = '❌ PHP Server Error (Status: ' + status + ' ' + statusText + ')<br><br>' +
+                        '<strong>Mogelijke oorzaken:</strong><br>' +
+                        '• payment-proxy.php bestaat niet op de server<br>' +
+                        '• PHP fouten in payment-proxy.php<br>' +
+                        '• Server ondersteunt geen PHP<br>' +
+                        '• Verkeerde bestandspaden<br><br>' +
+                        '<strong>Oplossing:</strong><br>' +
+                        '• Controleer of payment-proxy.php bestaat op de server<br>' +
+                        '• Controleer PHP error logs op de server<br>' +
+                        '• Test payment-proxy.php direct in browser<br>' +
+                        '• Controleer dat PHP correct is geïnstalleerd' + errorDetails;
                 } else if (responseText.length > 0) {
-                    // Show first 200 chars of response for debugging
-                    const preview = responseText.substring(0, 200).replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                    serverError = '❌ Server geeft geen geldig JSON antwoord<br><br><strong>Server antwoord:</strong><br><code style="background: rgba(0,0,0,0.1); padding: 4px; border-radius: 4px; font-size: 11px;">' + preview + (responseText.length > 200 ? '...' : '') + '</code><br><br>Controleer je PHP server en payment-proxy.php configuratie.';
+                    // Show first 300 chars of response for debugging
+                    const preview = responseText.substring(0, 300).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    serverError = '❌ Server geeft geen geldig JSON antwoord (Status: ' + status + ')<br><br>' +
+                        '<strong>Server antwoord:</strong><br>' +
+                        '<code style="background: rgba(0,0,0,0.1); padding: 4px; border-radius: 4px; font-size: 11px; display: block; max-width: 600px; overflow-x: auto;">' + 
+                        preview + (responseText.length > 300 ? '...' : '') + '</code><br><br>' +
+                        'Controleer je PHP server en payment-proxy.php configuratie.';
+                } else {
+                    serverError = '❌ Server geeft geen antwoord (Status: ' + status + ' ' + statusText + ')<br><br>' +
+                        'Controleer of payment-proxy.php bereikbaar is en PHP correct werkt.';
                 }
                 
                 throw new Error(serverError);
