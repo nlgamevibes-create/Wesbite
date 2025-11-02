@@ -8,11 +8,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const STRIPE_PUBLISHABLE_KEY = 'pk_live_51SOpweJyuvSjv9sEihIs2wjDUthZIZXTJinhvw7HQanrIUgNIsQn0few2ur7H0OJdeuXgibSvT86CyhySH6TlvlN00CSCV4Wfd';
     const stripe = Stripe ? Stripe(STRIPE_PUBLISHABLE_KEY) : null;
     
-    // Backend API endpoint - gebruik absolute URL voor productie
-    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const API_ENDPOINT = isLocalhost 
-        ? '/payment-proxy.php' 
-        : 'https://website.gameflux.nl/payment-proxy.php';
+    // Backend API endpoint - gebruik relatief pad (werkt op elke server)
+    const API_ENDPOINT = '/payment-proxy.php';
     
     // Get package info from URL parameters
     const urlParams = new URLSearchParams(window.location.search);
