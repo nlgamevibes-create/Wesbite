@@ -73,23 +73,22 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error('Payment error:', error);
             
-            // On localhost, if we catch an error, it means we should have shown test mode
-            // Don't show error message on localhost - test mode should have been shown already
+            // ALWAYS check localhost first - never show errors on localhost
             const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
             
             if (isLocalhost) {
-                // On localhost, show test mode instead of error
+                // On localhost, ALWAYS show test mode - never show errors
                 showTestModeStripe(selectedPackage);
                 payButton.disabled = false;
                 buttonText.style.display = 'block';
                 buttonLoader.style.display = 'none';
-                return;
+                return; // Exit early - no error messages on localhost
             }
             
-            // Production: Show detailed error message
+            // Production only: Show detailed error message
             let errorMessage = error.message || 'Er is een fout opgetreden. Probeer het opnieuw of neem contact op met support.';
             
-            // Make it user-friendly
+            // Make it user-friendly for production
             if (errorMessage.includes('Stripe')) {
                 errorMessage = '⚠️ Stripe Checkout fout:<br><br>' + errorMessage + '<br><br>Controleer je Stripe API keys en server configuratie.';
             } else if (errorMessage.includes('PHP') || errorMessage.includes('server')) {
@@ -127,13 +126,14 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const responseText = await response.text();
             
-            // On localhost: ALWAYS show test mode if response is not valid JSON
+            // On localhost: ALWAYS show test mode if response is not valid JSON or error status
             // This prevents error messages on localhost when Python server can't execute PHP
             if (isLocalhost) {
                 const isJSON = responseText.trim().startsWith('{') || responseText.trim().startsWith('[');
                 const isErrorStatus = response.status === 501 || response.status === 405 || response.status === 404 || response.status !== 200;
                 
-                if (!isJSON || isErrorStatus) {
+                // On localhost, if ANYTHING is wrong, just show test mode - never throw errors
+                if (!isJSON || isErrorStatus || responseText.length === 0) {
                     // Python server detected - show test mode, no errors
                     showTestModeStripe(pkg);
                     return;
@@ -168,15 +168,17 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 result = JSON.parse(responseText);
             } catch (parseError) {
-                // JSON parse failed - show helpful error
+                // JSON parse failed - on localhost always show test mode
                 console.error('JSON parse error:', parseError);
                 console.error('Response text:', responseText);
                 
+                // ALWAYS show test mode on localhost for any parse error
                 if (isLocalhost) {
                     showTestModeStripe(pkg);
                     return;
                 }
                 
+                // Production: show helpful error
                 let parseErrorMsg = '❌ Server geeft geen geldig JSON antwoord<br><br>';
                 
                 if (responseText.includes('501') || responseText.includes('Unsupported method')) {
@@ -191,6 +193,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             if (!response.ok) {
+                // On localhost, even server errors should show test mode
+                if (isLocalhost) {
+                    showTestModeStripe(pkg);
+                    return;
+                }
+                
                 const errorMsg = result?.error || 'Payment session creation failed';
                 throw new Error('❌ Betaling sessie kon niet worden aangemaakt<br><br>' + errorMsg);
             }
@@ -207,17 +215,37 @@ document.addEventListener('DOMContentLoaded', () => {
                             });
                             
                             if (error) {
+                                // On localhost, redirect errors also show test mode
+                                if (isLocalhost) {
+                                    showTestModeStripe(pkg);
+                                    return;
+                                }
                                 throw new Error(`Stripe error: ${error.message}`);
                             }
                             // Success - redirecting (this is the ONLY place we redirect)
                             return;
                         } catch (stripeError) {
+                            // On localhost, show test mode instead of error
+                            if (isLocalhost) {
+                                showTestModeStripe(pkg);
+                                return;
+                            }
                             throw new Error(`Stripe redirect error: ${stripeError.message}`);
                         }
                     } else {
+                        // Stripe library not loaded
+                        if (isLocalhost) {
+                            showTestModeStripe(pkg);
+                            return;
+                        }
                         throw new Error('Stripe library niet geladen');
                     }
                 } else {
+                    // Invalid session ID format
+                    if (isLocalhost) {
+                        showTestModeStripe(pkg);
+                        return;
+                    }
                     throw new Error('Ongeldige Stripe session ID format');
                 }
             } else if (result.paymentUrl && typeof result.paymentUrl === 'string' && 
@@ -238,8 +266,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Network error, timeout, or other fetch error
             console.error('Payment fetch error:', fetchError);
             
+            // ALWAYS show test mode on localhost - no errors ever
             if (isLocalhost) {
-                // On localhost, always show test mode instead of error
                 showTestModeStripe(pkg);
                 return;
             }
